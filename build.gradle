@@ -1,0 +1,126 @@
+//apply plugin: 'java'
+//apply from: 'http://www.tellurianring.com/projects/gradle-plugins/gradle-templates/1.3/apply.groovy'
+
+/*task hello {
+    doLast {
+        println 'Hello world!'
+    }
+}*/
+//我们的例子会经常用到-q参数。它会抑制Gradle的日志输出而只有任务输出。这样看起来清爽一些。如果不需要完全可以不用
+/*task hello <<{
+		println 'Hello world!'
+}*/
+task upper <<{
+	String someString='mY_nAmE'
+	println "Original: "+someString
+	println "upper case: "+someString.toUpperCase()
+}
+task count <<{
+	4.times{print "$it"}
+}
+
+//Task dependencies任务依赖   hello不带引号的话 hello必须先定义
+
+task intro(dependsOn: 'hello') << {
+    println "I'm Gradle"
+}
+
+//任务依赖的其他任务可以不预先定义
+task taskX(dependsOn: 'taskY') << {
+    println 'taskX'
+}
+task taskY << {
+    println 'taskY'
+}
+
+//Dynamic tasks动态任务
+4.times { counter ->
+    task "task$counter" << {
+        println "I'm task number $counter"
+    }
+}
+//和Ant不同的是Gradle的任务创建后可以通过API来访问，比如增加依赖。
+task0.dependsOn task2, task3
+
+//可以增加任务的行为
+task hello << {
+    println 'Hello Earth'
+}
+hello.doFirst {
+    println 'Hello Venus'
+}
+hello.doLast {
+    println 'Hello Mars'
+}
+hello << {
+    println 'Hello Jupiter'
+    println "Greetings from the $hello.name task."   //实用快捷符号
+}
+
+//Extra task properties新增属性
+task myTask{
+	ext.myproperty="myValue"
+}
+
+task printTaskProperties <<{
+	println myTask.myproperty
+}
+//Using AntBuilder to execute ant.loadfile target
+/*task loadfile <<{
+	def files = file('../antLoadfileResources').listFiles().sort()
+	files.each{File file ->
+		if(file.isFile()){
+			ant.loadfile(srcFile:file,property:file.name)
+			println "*** $file.name ***"
+			println "${ant.properties[file.name]}"
+		}
+	}
+}*/
+//Using methods方法
+task checksum << {
+    fileList('../antLoadfileResources').each {File file ->
+        ant.checksum(file: file, property: "cs_$file.name")
+        println "$file.name Checksum: ${ant.properties["cs_$file.name"]}"
+    }
+    
+}
+
+task loadfile << {
+    fileList('../antLoadfileResources').each {File file ->
+        ant.loadfile(srcFile: file, property: file.name)
+        println "I'm fond of $file.name"
+    }
+}
+
+File[] fileList(String dir) {
+    file(dir).listFiles({file -> file.isFile() } as FileFilter).sort()
+}
+
+//default tasks
+defaultTasks 'clean','run'
+task clean <<{
+	println 'Default cleaning!'
+}
+task run <<{
+	println 'Default Running!'
+}
+task other <<{
+	println "i'm not a default task!"
+}
+
+
+task distribution << {
+    println "We build the zip with version=$version"
+}
+ 
+task release(dependsOn: 'distribution') << {
+    println 'We release now'
+}
+ 
+gradle.taskGraph.whenReady {taskGraph ->
+    if (taskGraph.hasTask(release)) {
+        version = '1.0'
+    } else {
+        version = '1.0-SNAPSHOT'
+    }
+}
